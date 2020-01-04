@@ -1,20 +1,23 @@
+import Key.*
 import org.jnativehook.GlobalScreen
 import org.jnativehook.NativeHookException
 import org.jnativehook.NativeInputEvent
 import org.jnativehook.keyboard.NativeKeyAdapter
 import org.jnativehook.keyboard.NativeKeyEvent
+import org.jnativehook.mouse.NativeMouseWheelEvent
+import org.jnativehook.mouse.NativeMouseWheelListener
 import java.lang.reflect.Field
 
 object KeyboardHooks {
 
     private lateinit var hooks: MutableList<Hook>
 
-    val set = mutableSetOf<Key>()
+    val currentHolders = mutableSetOf<Key>()
     val map = mutableMapOf<Key, Any?>()
 
 
     fun checkForKey(key: Key): Boolean {
-        return set.contains(key)
+        return currentHolders.contains(key)
     }
 
     fun registerKeyboardHook(hooks: MutableList<Hook>) {
@@ -31,6 +34,7 @@ object KeyboardHooks {
 
         GlobalScreen.addNativeKeyListener(GlobalKeyListenerExample())
         GlobalScreen.addNativeMouseListener(MouseListener())
+        GlobalScreen.addNativeMouseWheelListener(MouseWheelListener())
     }
 
     class GlobalKeyListenerExample : NativeKeyAdapter() {
@@ -39,67 +43,60 @@ object KeyboardHooks {
         override fun nativeKeyPressed(e: NativeKeyEvent) {
             println("Key Pressed: ${NativeKeyEvent.getKeyText(e.keyCode)} ${NativeKeyEvent.getModifiersText(e.modifiers)}")
             println("Map size ${map.size}")
-            println("Set size ${set.size}")
+            println("Set size ${currentHolders.size}")
 
             val key = e.toKey()
 
             hooks.firstOrNull { hook ->
-                hook.keyStroke.trigger == key &&
-                        set.containsAll(hook.keyStroke.holders)
+                hook.trigger == key &&
+                        currentHolders.containsAll(hook.holders)
             }?.run {
+                // Si hice algo no mando esa tecla al sistema
+                eatKey(e)
                 task()
             }
 
             map[key] = null
-            set.add(key)
-
-            if (e.keyCode == NativeKeyEvent.VC_B) {
-                print("Attempting to consume B event...\t")
-                try {
-                    val f: Field = NativeInputEvent::class.java.getDeclaredField("reserved")
-                    f.isAccessible = true
-                    f.setShort(e, 0x01.toShort())
-                    print("[ OK ]\n")
-                } catch (ex: Exception) {
-                    print("[ !! ]\n")
-                    ex.printStackTrace()
-                }
-            }
+            currentHolders.add(key)
         }
 
         override fun nativeKeyReleased(e: NativeKeyEvent) {
             println("Key Released: ${e.keyCode} ${e.modifiers}")
 
-            set.remove(e.toKey())
+            currentHolders.remove(e.toKey())
+        }
 
-            if (e.keyCode == NativeKeyEvent.VC_B) {
-                print("Attempting to consume B event...\t")
-                try {
-                    val f = NativeInputEvent::class.java.getDeclaredField("reserved")
-                    f.isAccessible = true
-                    f.setShort(e, 0x01.toShort())
-                    print("[ OK ]\n")
-                } catch (ex: java.lang.Exception) {
-                    print("[ !! ]\n")
-                    ex.printStackTrace()
-                }
-                sendKey(Key.DOWN)
-            }
-
-            when (e.keyCode) {
-                Key.N1.nativeKeyEvent -> {
-//                openPM()
-//                sendChars("Bingo!")
-//                setClipboard("Bingo!")
-//                pasteClipboard()
-                }
-                Key.N0.nativeKeyEvent -> {
-                    showFrame("Hola Consolas!!!")
-                }
-                else -> {
-                }
+        private fun eatKey(e: NativeKeyEvent) {
+            print("Attempting to consume B event...\t")
+            try {
+                val f: Field = NativeInputEvent::class.java.getDeclaredField("reserved")
+                f.isAccessible = true
+                f.setShort(e, 0x01.toShort())
+                print("[ OK ]\n")
+            } catch (ex: Exception) {
+                print("[ !! ]\n")
+                ex.printStackTrace()
             }
         }
 
     }
+
+    class MouseWheelListener : NativeMouseWheelListener {
+        override fun nativeMouseWheelMoved(e: NativeMouseWheelEvent) {
+            println(e.paramString())
+            val WHEEL_UP = -1
+            val WHEEL_DOWN = 1
+            val WHEEL_LEFT = -2
+            val WHEEL_RIGHT = 2
+            if (
+                e.wheelRotation == WHEEL_DOWN
+//                &&
+//                currentHolders.containsAll(listOf(Key.SHIFT, Key.CTRL))
+            ) {
+//                sendKeys(CTRL + TAB)
+            }
+        }
+
+    }
+
 }

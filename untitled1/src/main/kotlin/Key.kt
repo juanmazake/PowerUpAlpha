@@ -1,7 +1,7 @@
 import org.jnativehook.keyboard.NativeKeyEvent
 import java.awt.event.KeyEvent
 
-enum class Key(val keyEvent: Int, val nativeKeyEvent: Int) {
+enum class Key(val keyEvent: Int, val nativeKeyEvent: Int): Condition {
     N0(KeyEvent.VK_0, NativeKeyEvent.VC_0),
     N1(KeyEvent.VK_1, NativeKeyEvent.VC_1),
     N2(KeyEvent.VK_2, NativeKeyEvent.VC_2),

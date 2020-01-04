@@ -1,1 +1,5 @@
-/untitled1/build/
+*/build/
+*/.gradle/
+*/gradle/
+/.idea/
+*.iml
